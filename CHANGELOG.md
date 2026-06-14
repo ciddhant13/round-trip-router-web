@@ -2,16 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
-## [1.2.0] - 2026-06-14
-### Added
-- **Mobile Gesture Support**: Added a 500ms long-press detector to draw circular route directions on mobile touch screens.
-- **Haptic Feedback**: Trigger minor vibration haptic (50ms) on mobile devices when long-press successfully locks the map into drawing mode.
-- **Version Number**: Added a minimal version footer `v1.2.0` in the UI to track active deployments.
-
+## [1.2.1] - 2026-06-14
 ### Fixed
 - **Mobile Touch Coordinates**: Added a coordinate fallback (`mouseEventToLatLng`) to resolve undefined `e.latlng` on touch events.
 - **Selection Suppression**: Applied global CSS `user-select: none` and `-webkit-touch-callout: none` to the map container to prevent selection highlighting (e.g. magnifying glass/zoom text selection) during long press gestures.
 - **Gesture Drift Tolerance**: Raised touch start drift tolerance from 15px to 25px to accommodate natural finger shaking on press-and-hold.
+
+---
+
+## [1.2.0] - 2026-06-14
+### Added
+- **Mobile Gesture Support**: Added a 500ms long-press detector to draw circular route directions on mobile touch screens.
+- **Haptic Feedback**: Trigger minor vibration haptic (50ms) on mobile devices when long-press successfully locks the map into drawing mode.
+- **Version Number**: Added a minimal version footer in the UI to track active deployments.
 
 ---
 
