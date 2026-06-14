@@ -4,68 +4,96 @@ import { useEffect, useRef } from 'react';
 import { setOptions, importLibrary } from '@googlemaps/js-api-loader';
 
 const darkMapStyles = [
-  { elementType: "geometry", stylers: [{ color: "#1e1e24" }] },
-  { elementType: "labels.text.stroke", stylers: [{ color: "#1e1e24" }] },
-  { elementType: "labels.text.fill", stylers: [{ color: "#8b949e" }] },
+  // Base background and text styling
+  { elementType: "geometry", stylers: [{ color: "#1a1d20" }] },
+  { elementType: "labels.text.stroke", stylers: [{ color: "#1a1d20" }] },
+  { elementType: "labels.text.fill", stylers: [{ color: "#9ca3af" }] },
+
+  // Water: Rich Deep Blue/Teal body
   {
-    featureType: "administrative",
-    elementType: "geometry.stroke",
-    stylers: [{ color: "#30363d" }]
+    featureType: "water",
+    elementType: "geometry",
+    stylers: [{ color: "#1e293b" }]
   },
+  {
+    featureType: "water",
+    elementType: "labels.text.fill",
+    stylers: [{ color: "#38bdf8" }]
+  },
+
+  // Parks & Forest/Landscape POIs: Subtle emerald green
+  {
+    featureType: "poi.park",
+    elementType: "geometry",
+    stylers: [{ color: "#14532d" }]
+  },
+  {
+    featureType: "poi.park",
+    elementType: "labels.text.fill",
+    stylers: [{ color: "#4ade80" }]
+  },
+
+  // Generic Landscape
   {
     featureType: "landscape",
     elementType: "geometry",
-    stylers: [{ color: "#161b22" }]
+    stylers: [{ color: "#111827" }]
   },
-  {
-    featureType: "poi",
-    elementType: "geometry",
-    stylers: [{ color: "#161b22" }]
-  },
-  {
-    featureType: "poi",
-    elementType: "labels.text.fill",
-    stylers: [{ color: "#8b949e" }]
-  },
-  {
-    featureType: "road",
-    elementType: "geometry",
-    stylers: [{ color: "#21262d" }]
-  },
-  {
-    featureType: "road",
-    elementType: "geometry.stroke",
-    stylers: [{ color: "#30363d" }]
-  },
-  {
-    featureType: "road",
-    elementType: "labels.text.fill",
-    stylers: [{ color: "#c9d1d9" }]
-  },
+
+  // Highways: Distinct Bronze/Amber lines with bright text labels
   {
     featureType: "road.highway",
     elementType: "geometry",
-    stylers: [{ color: "#30363d" }]
+    stylers: [{ color: "#451a03" }] // Dark amber base
   },
   {
     featureType: "road.highway",
     elementType: "geometry.stroke",
-    stylers: [{ color: "#8b949e" }]
+    stylers: [{ color: "#b45309" }] // Gold/amber stroke
   },
+  {
+    featureType: "road.highway",
+    elementType: "labels.text.fill",
+    stylers: [{ color: "#fbbf24" }] // Bright yellow-amber text
+  },
+
+  // Local/Arterial Roads: Structured charcoal
+  {
+    featureType: "road.local",
+    elementType: "geometry",
+    stylers: [{ color: "#31353f" }]
+  },
+  {
+    featureType: "road.local",
+    elementType: "geometry.stroke",
+    stylers: [{ color: "#1e2026" }]
+  },
+  {
+    featureType: "road.local",
+    elementType: "labels.text.fill",
+    stylers: [{ color: "#f3f4f6" }]
+  },
+  {
+    featureType: "road.arterial",
+    elementType: "geometry",
+    stylers: [{ color: "#3c404c" }]
+  },
+  {
+    featureType: "road.arterial",
+    elementType: "geometry.stroke",
+    stylers: [{ color: "#1e2026" }]
+  },
+  {
+    featureType: "road.arterial",
+    elementType: "labels.text.fill",
+    stylers: [{ color: "#f3f4f6" }]
+  },
+
+  // Transit lines
   {
     featureType: "transit",
     elementType: "geometry",
-    stylers: [{ color: "#161b22" }]
-  },
-  {
-    featureType: "water",
-    elementType: "geometry",
-    stylers: [{ color: "#0d1117" }]
-  },
-  {
-    featureType: "water",
-    elementType: "labels.text.fill",
-    stylers: [{ color: "#58a6ff" }]
+    stylers: [{ color: "#1f2937" }]
   }
 ];
 
@@ -298,7 +326,7 @@ export default function MapDisplay({ center, route, drawMode, onDirectionDrawn, 
     };
   }, [drawMode, onDirectionDrawn]);
 
-  // Handle Route Drawing and Animations (Pulsating neon glow + Flowing direction arrows)
+  // Handle Route Drawing and Animations (Pulsating neon cyan glow + Static direction arrows)
   useEffect(() => {
     let animationFrameId;
 
@@ -331,18 +359,18 @@ export default function MapDisplay({ center, route, drawMode, onDirectionDrawn, 
       polylineGlowInstance.current = new Polyline({
         path: coords,
         geodesic: true,
-        strokeColor: "#c084fc", // Glowing neon purple
+        strokeColor: "#0891b2", // Glowing cyan/teal
         strokeOpacity: 0.35,
         strokeWeight: 8,
         map: mapInstance.current
       });
 
-      // 2. Foreground Solid Path Polyline with flowing white direction arrows
+      // 2. Foreground Solid Path Polyline with static white direction arrows
       polylineInstance.current = new Polyline({
         path: coords,
         geodesic: true,
-        strokeColor: "#ec4899", // Vibrant neon fuchsia
-        strokeOpacity: 0.85,
+        strokeColor: "#00f0ff", // Bright neon electric cyan
+        strokeOpacity: 0.9,
         strokeWeight: 4,
         icons: [{
           icon: {
@@ -354,7 +382,7 @@ export default function MapDisplay({ center, route, drawMode, onDirectionDrawn, 
             strokeWeight: 1
           },
           offset: '0px',
-          repeat: '60px' // Repeat arrow every 60px
+          repeat: '80px' // Spaced out static direction indicators
         }],
         map: mapInstance.current
       });
@@ -365,19 +393,8 @@ export default function MapDisplay({ center, route, drawMode, onDirectionDrawn, 
       coords.forEach(c => bounds.extend(c));
       mapInstance.current.fitBounds(bounds, { padding: 40 });
 
-      // Start the route animation loop
-      let count = 0;
+      // Start the route breathing pulsation animation loop (arrows remain static)
       const animate = () => {
-        // Flowing arrows animation
-        count = (count + 1) % 60;
-        if (polylineInstance.current) {
-          const icons = polylineInstance.current.get('icons');
-          if (icons && icons[0]) {
-            icons[0].offset = count + 'px';
-            polylineInstance.current.set('icons', icons);
-          }
-        }
-
         // Pulsating breathing glow animation
         if (polylineGlowInstance.current) {
           const time = Date.now() * 0.003;
