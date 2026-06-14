@@ -197,7 +197,16 @@ export default function MapDisplay({ center, route, drawMode, onDirectionDrawn, 
           }
           isDrawing.current = true;
           gesturePoints.current = [latlng];
+          
           map.dragging.disable();
+          // Force stop the currently active touch drag tracker in Leaflet
+          if (map.dragging._draggable) {
+            try {
+              map.dragging._draggable._onUp();
+            } catch (err) {
+              // fallback
+            }
+          }
 
           gesturePolyline.current = L.polyline(
             [[latlng.lat, latlng.lng]],
@@ -218,7 +227,7 @@ export default function MapDisplay({ center, route, drawMode, onDirectionDrawn, 
             const startPt = map.latLngToContainerPoint(touchStartLatLng);
             const currentPt = map.latLngToContainerPoint(latlng);
             const distance = Math.hypot(currentPt.x - startPt.x, currentPt.y - startPt.y);
-            if (distance > 25) {
+            if (distance > 40) {
               clearTimeout(touchTimeout);
               touchTimeout = null;
             }
@@ -229,6 +238,7 @@ export default function MapDisplay({ center, route, drawMode, onDirectionDrawn, 
         // We are drawing direction
         if (e.originalEvent.touches && e.originalEvent.touches.length === 1 && gesturePolyline.current) {
           e.originalEvent.preventDefault();
+          e.originalEvent.stopPropagation();
           gesturePoints.current.push(latlng);
           gesturePolyline.current.setLatLngs(
             gesturePoints.current.map(p => [p.lat, p.lng])

@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.2] - 2026-06-14
+### Fixed
+- **Active Drag Release**: Forced Leaflet's underlying `L.Draggable` state machine to terminate active touch dragging on long press (`_draggable._onUp()`).
+- **Touch Event Propagation**: Blocked gesture touch move events from bubbling to Leaflet map panning by calling `stopPropagation()`.
+- **Drift Threshold**: Relaxed drift tolerance to `40px` to ignore natural finger contact expansions during initial touch-hold.
+
+---
+
 ## [1.2.1] - 2026-06-14
 ### Fixed
 - **Mobile Touch Coordinates**: Added a coordinate fallback (`mouseEventToLatLng`) to resolve undefined `e.latlng` on touch events.
