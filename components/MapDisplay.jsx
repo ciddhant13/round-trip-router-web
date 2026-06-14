@@ -54,7 +54,7 @@ const darkMapStyles = [
   {
     featureType: "road.highway",
     elementType: "labels.text.fill",
-    stylers: [{ color: "#e5e7eb" }] // Clean light gray labels
+    stylers: [{ color: "#9ca3af" }] // Muted gray labels
   },
 
   // Local/Arterial Roads: Structured charcoal
@@ -71,7 +71,7 @@ const darkMapStyles = [
   {
     featureType: "road.local",
     elementType: "labels.text.fill",
-    stylers: [{ color: "#f3f4f6" }]
+    stylers: [{ color: "#6b7280" }] // Darker gray for local streets
   },
   {
     featureType: "road.arterial",
@@ -86,7 +86,7 @@ const darkMapStyles = [
   {
     featureType: "road.arterial",
     elementType: "labels.text.fill",
-    stylers: [{ color: "#f3f4f6" }]
+    stylers: [{ color: "#808a9e" }] // Muted slate gray for arterial roads
   },
 
   // Transit lines
