@@ -185,7 +185,8 @@ export default function MapDisplay({ center, route, drawMode, onDirectionDrawn, 
           return;
         }
 
-        const latlng = e.latlng;
+        const latlng = e.latlng || (e.originalEvent.touches && e.originalEvent.touches[0] ? map.mouseEventToLatLng(e.originalEvent.touches[0]) : null);
+        if (!latlng) return;
         touchStartLatLng = latlng;
 
         if (touchTimeout) clearTimeout(touchTimeout);
@@ -208,13 +209,16 @@ export default function MapDisplay({ center, route, drawMode, onDirectionDrawn, 
       };
 
       const onTouchMove = (e) => {
+        const latlng = e.latlng || (e.originalEvent.touches && e.originalEvent.touches[0] ? map.mouseEventToLatLng(e.originalEvent.touches[0]) : null);
+        if (!latlng) return;
+
         if (!isDrawing.current) {
           // If dragging has moved finger significantly, cancel long press
-          if (touchTimeout && touchStartLatLng && e.latlng) {
+          if (touchTimeout && touchStartLatLng) {
             const startPt = map.latLngToContainerPoint(touchStartLatLng);
-            const currentPt = map.latLngToContainerPoint(e.latlng);
+            const currentPt = map.latLngToContainerPoint(latlng);
             const distance = Math.hypot(currentPt.x - startPt.x, currentPt.y - startPt.y);
-            if (distance > 15) {
+            if (distance > 25) {
               clearTimeout(touchTimeout);
               touchTimeout = null;
             }
@@ -225,7 +229,7 @@ export default function MapDisplay({ center, route, drawMode, onDirectionDrawn, 
         // We are drawing direction
         if (e.originalEvent.touches && e.originalEvent.touches.length === 1 && gesturePolyline.current) {
           e.originalEvent.preventDefault();
-          gesturePoints.current.push(e.latlng);
+          gesturePoints.current.push(latlng);
           gesturePolyline.current.setLatLngs(
             gesturePoints.current.map(p => [p.lat, p.lng])
           );
@@ -329,7 +333,21 @@ export default function MapDisplay({ center, route, drawMode, onDirectionDrawn, 
       {/* Leaflet CSS — loaded once globally via a link tag */}
       <style>{`
         @import url('https://unpkg.com/leaflet@1.9.4/dist/leaflet.css');
-        .leaflet-container { background: #1a1d20; }
+        .leaflet-container { 
+          background: #1a1d20; 
+          user-select: none !important;
+          -webkit-user-select: none !important;
+          -moz-user-select: none !important;
+          -ms-user-select: none !important;
+          -webkit-touch-callout: none !important;
+        }
+        .leaflet-container * {
+          user-select: none !important;
+          -webkit-user-select: none !important;
+          -moz-user-select: none !important;
+          -ms-user-select: none !important;
+          -webkit-touch-callout: none !important;
+        }
         .leaflet-control-attribution {
           background: rgba(15, 17, 21, 0.75) !important;
           color: #6b7280 !important;
