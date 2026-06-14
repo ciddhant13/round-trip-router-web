@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from 'react';
-import { MapPin, Navigation, Route as RouteIcon, Loader2, RefreshCw, X } from 'lucide-react';
+import { MapPin, Navigation, Route as RouteIcon, Loader2, RefreshCw, X, Download } from 'lucide-react';
 
 export default function LocationForm({ 
   onSubmit, 
@@ -16,7 +16,8 @@ export default function LocationForm({
   setLocationText,
   setDirectionAngle,
   actualDistance,
-  directionAngle
+  directionAngle,
+  onExportGPX
 }) {
   const [isLocating, setIsLocating] = useState(false);
   const [error, setError] = useState(null);
@@ -261,7 +262,8 @@ export default function LocationForm({
                 color: '#0f1115', 
                 borderColor: '#ff6600',
                 background: '#ff6600',
-                fontSize: '1.125rem'
+                fontSize: '1rem',
+                boxSizing: 'border-box',
               }}>
                 {actualDistance}
               </div>
@@ -272,35 +274,80 @@ export default function LocationForm({
         {/* Points selector removed from UI, hardcoded to 6 (Hexagon) for optimal circular routes */}
 
 
-        <button 
-          type="submit" 
-          className="button-primary" 
-          disabled={!locationText.trim() || isLocating || isGenerating}
-          style={{ 
-            marginTop: '0.5rem',
-            background: showTryAnother ? 'rgba(99, 102, 241, 0.2)' : undefined,
-            color: showTryAnother ? 'white' : undefined,
-            border: showTryAnother ? '1px solid var(--accent-primary)' : undefined,
-            boxShadow: showTryAnother ? 'var(--shadow-glow)' : undefined
-          }}
-        >
-          {isGenerating ? (
-            <>
-              <Loader2 size={20} style={{ animation: 'spin 1s linear infinite' }} />
-              {showTryAnother ? 'Finding Another Route...' : 'Generating Route...'}
-            </>
-          ) : showTryAnother ? (
-            <>
-              <RefreshCw size={20} />
-              Try Another Route
-            </>
-          ) : (
-            <>
-              <MapPin size={20} />
-              Generate Route
-            </>
-          )}
-        </button>
+        <div style={{ display: 'flex', gap: 0, marginTop: '0.5rem', alignItems: 'stretch' }}>
+          <button 
+            type="submit" 
+            className="button-primary"
+            disabled={!locationText.trim() || isLocating || isGenerating}
+            style={{ 
+              flex: 1,
+              background: showTryAnother ? 'rgba(99, 102, 241, 0.2)' : undefined,
+              color: showTryAnother ? 'white' : undefined,
+              border: showTryAnother ? '1px solid var(--accent-primary)' : undefined,
+              boxShadow: showTryAnother ? 'var(--shadow-glow)' : undefined
+            }}
+          >
+            {isGenerating ? (
+              <>
+                <Loader2 size={20} style={{ animation: 'spin 1s linear infinite' }} />
+                {showTryAnother ? 'Finding Another Route...' : 'Generating Route...'}
+              </>
+            ) : showTryAnother ? (
+              <>
+                <RefreshCw size={20} />
+                Try Another Route
+              </>
+            ) : (
+              <>
+                <MapPin size={20} />
+                Generate Route
+              </>
+            )}
+          </button>
+
+          {/* GPX button — animated expand/collapse matching actual distance transition */}
+          <div style={{
+            maxWidth: hasActiveRoute ? '120px' : '0px',
+            marginLeft: hasActiveRoute ? '0.75rem' : '0px',
+            opacity: hasActiveRoute ? 1 : 0,
+            overflow: 'hidden',
+            flexShrink: 0,
+            transition: 'max-width 0.3s ease, opacity 0.3s ease, margin-left 0.3s ease',
+          }}>
+            <button
+              type="button"
+              onClick={onExportGPX}
+              title="Export as GPX file"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                padding: '0 1.1rem',
+                height: '100%',
+                borderRadius: 'var(--radius-md)',
+                background: 'transparent',
+                border: '1px solid rgba(255, 255, 255, 0.15)',
+                color: 'var(--text-secondary)',
+                fontSize: '0.875rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                transition: 'border-color 0.2s ease, color 0.2s ease',
+                whiteSpace: 'nowrap',
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.borderColor = '#ff6600';
+                e.currentTarget.style.color = '#ff6600';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.15)';
+                e.currentTarget.style.color = 'var(--text-secondary)';
+              }}
+            >
+              <Download size={15} />
+              GPX
+            </button>
+          </div>
+        </div>
       </form>
       <style dangerouslySetInnerHTML={{__html: `
         @keyframes spin {

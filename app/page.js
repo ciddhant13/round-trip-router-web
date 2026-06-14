@@ -71,11 +71,13 @@ export default function Home() {
     setGlobalError(null);
   };
 
-  // Triggers route generation from map gesture
-  const handleDirectionDrawn = ({ angle, startCoordinates }) => {
-    setDirectionAngle(angle); // Store direction angle state
+  // Triggers route generation from map gesture.
+  // Deliberately ignores startCoordinates — the gesture angle is all that matters.
+  // The route always starts from the already-placed marker (coords state).
+  const handleDirectionDrawn = ({ angle }) => {
+    setDirectionAngle(angle);
     handleGenerateRoutes({
-      coordinates: startCoordinates,
+      coordinates: coords,
       distanceKm: distance,
       directionAngle: angle
     });
@@ -217,6 +219,7 @@ ${trkpts}
               setDirectionAngle={setDirectionAngle}
               actualDistance={activeRoute ? (activeRoute.features[0].properties.summary.distance / 1000).toFixed(2) : null}
               directionAngle={directionAngle}
+              onExportGPX={handleExportGPX}
             />
           </div>
 
@@ -230,40 +233,6 @@ ${trkpts}
               directionAngle={directionAngle}
             />
           </div>
-
-          {activeRoute && (
-            <div className="animate-fade-in" style={{ animationDelay: '300ms', display: 'flex', justifyContent: 'center' }}>
-              <button
-                onClick={handleExportGPX}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
-                  padding: '0.6rem 1.5rem',
-                  borderRadius: 'var(--radius-full)',
-                  background: 'transparent',
-                  border: '1px solid rgba(255, 255, 255, 0.15)',
-                  color: 'var(--text-secondary)',
-                  fontSize: '0.875rem',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease',
-                  letterSpacing: '0.02em'
-                }}
-                onMouseEnter={e => {
-                  e.currentTarget.style.borderColor = '#ff6600';
-                  e.currentTarget.style.color = '#ff6600';
-                }}
-                onMouseLeave={e => {
-                  e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.15)';
-                  e.currentTarget.style.color = 'var(--text-secondary)';
-                }}
-              >
-                <Download size={16} />
-                Export GPX
-              </button>
-            </div>
-          )}
 
         </div>
       </div>

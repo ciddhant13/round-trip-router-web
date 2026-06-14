@@ -8,7 +8,7 @@ export default function MapDisplay({ center, route, drawMode, onDirectionDrawn, 
   const polylineInstance = useRef(null);
   const markerInstance = useRef(null);
   const gesturePolyline = useRef(null);   // live drawing line
-  const arrowOverlay = useRef(null);      // direction vector after release
+  const arrowOverlay = useRef(null);      // unused — kept for future use
 
   const isDrawing = useRef(false);
   const gesturePoints = useRef([]);
@@ -48,16 +48,23 @@ export default function MapDisplay({ center, route, drawMode, onDirectionDrawn, 
         doubleClickZoom: false,
       });
 
-      // CartoDB Dark Matter — completely free, no API key
-      L.tileLayer(
+      // CartoDB Dark Matter — free, no API key, dark base tiles.
+      // A CSS filter is applied to the tile pane afterwards to lift road/label
+      // contrast so the map doesn't look flat.
+      const tileLayer = L.tileLayer(
         'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
         {
           attribution:
-            '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+            '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions" target="_blank">CARTO</a>',
           subdomains: 'abcd',
           maxZoom: 20,
         }
       ).addTo(map);
+
+      // Boost road/label visibility without blowing out the dark background
+      tileLayer.on('load', () => {
+        map.getPanes().tilePane.style.filter = 'brightness(2.0) contrast(1.1) saturate(1.3)';
+      });
 
       // Map click → pick start location
       map.on('click', (e) => {
@@ -80,6 +87,9 @@ export default function MapDisplay({ center, route, drawMode, onDirectionDrawn, 
   }, []);
 
   // ── 2. Pan map & update marker when center changes ─────────────────────────
+  // NOTE: mapReady is included in deps to handle the race condition where
+  // geolocation resolves before Leaflet finishes its async import/init.
+  // Adding mapReady ensures this effect re-runs once the map is available.
   useEffect(() => {
     if (!mapInstance.current || !center) return;
 
@@ -93,7 +103,8 @@ export default function MapDisplay({ center, route, drawMode, onDirectionDrawn, 
         markerInstance.current.setLatLng([center.lat, center.lng]);
       }
     });
-  }, [center]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [center, mapReady]);
 
   // ── 3. Right-click drag gesture drawing ──────────────────────────────────
   useEffect(() => {
@@ -108,7 +119,7 @@ export default function MapDisplay({ center, route, drawMode, onDirectionDrawn, 
         isDrawing.current = false;
         map.dragging.enable();
 
-        // Remove live drawing line
+        // Remove live drawing line immediately
         if (gesturePolyline.current) {
           map.removeLayer(gesturePolyline.current);
           gesturePolyline.current = null;
@@ -125,16 +136,7 @@ export default function MapDisplay({ center, route, drawMode, onDirectionDrawn, 
         const dx = (end.lng - start.lng) * Math.cos((start.lat * Math.PI) / 180);
         const angleRad = Math.atan2(dy, dx);
 
-        // Draw persistent direction arrow overlay
-        if (arrowOverlay.current) {
-          map.removeLayer(arrowOverlay.current);
-          arrowOverlay.current = null;
-        }
-        arrowOverlay.current = L.polyline(
-          [[start.lat, start.lng], [end.lat, end.lng]],
-          { color: '#3b82f6', weight: 3, opacity: 0.8 }
-        ).addTo(map);
-
+        // No persistent arrow on map — direction is shown via the UI compass pill
         if (onDirectionDrawnRef.current) {
           onDirectionDrawnRef.current({
             angle: angleRad,
@@ -149,12 +151,6 @@ export default function MapDisplay({ center, route, drawMode, onDirectionDrawn, 
         isDrawing.current = true;
         gesturePoints.current = [e.latlng];
         map.dragging.disable();
-
-        // Clear previous arrow
-        if (arrowOverlay.current) {
-          map.removeLayer(arrowOverlay.current);
-          arrowOverlay.current = null;
-        }
 
         gesturePolyline.current = L.polyline(
           [[e.latlng.lat, e.latlng.lng]],
