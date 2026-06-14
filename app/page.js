@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import LocationForm from '@/components/LocationForm';
 import MapDisplay from '@/components/MapDisplay';
 import { Route as RouteIcon, Compass } from 'lucide-react';
@@ -20,6 +20,35 @@ export default function Home() {
   // Shared states for directional routing
   const [distance, setDistance] = useState(5);
   const [directionAngle, setDirectionAngle] = useState(null);
+
+  // Default to current location on load or fallback to Vidhana Soudha, Bengaluru
+  useEffect(() => {
+    const fallbackCenter = { lat: 12.979693, lng: 77.590674 };
+    const fallbackCoords = [77.590674, 12.979693];
+
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const lat = position.coords.latitude;
+          const lng = position.coords.longitude;
+          setCenter({ lat, lng });
+          setCoords([lng, lat]);
+          setLocationText("Using current location");
+        },
+        (error) => {
+          console.warn("Geolocation permission denied or error, falling back to Bengaluru Vidhana Soudha:", error);
+          setCenter(fallbackCenter);
+          setCoords(fallbackCoords);
+          setLocationText("Bengaluru Vidhana Soudha");
+        },
+        { enableHighAccuracy: true, timeout: 6000, maximumAge: 0 }
+      );
+    } else {
+      setCenter(fallbackCenter);
+      setCoords(fallbackCoords);
+      setLocationText("Bengaluru Vidhana Soudha");
+    }
+  }, []);
 
   // Center the map without generating routes (used when Draw Mode is active)
   const handleLocate = (data) => {
@@ -136,7 +165,7 @@ export default function Home() {
           </div>
         )}
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem', alignItems: 'start' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', maxWidth: '800px', margin: '0 auto' }}>
           
           <div className="animate-fade-in" style={{ animationDelay: '100ms' }}>
             <LocationForm 
@@ -151,42 +180,19 @@ export default function Home() {
               locationText={locationText}
               setLocationText={setLocationText}
               setDirectionAngle={setDirectionAngle}
+              actualDistance={activeRoute ? (activeRoute.features[0].properties.summary.distance / 1000).toFixed(2) : null}
+              directionAngle={directionAngle}
             />
-
-            {activeRoute && (
-              <div className="glass-panel animate-fade-in" style={{ padding: '1.5rem', marginTop: '1.5rem' }}>
-                <h3 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '1.25rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <Compass style={{ color: 'var(--accent-primary)' }} /> Route Details
-                </h3>
-                <div style={{ marginBottom: '1.5rem' }}>
-                  <div style={{ background: 'var(--bg-secondary)', padding: '1rem', borderRadius: 'var(--radius-sm)', textAlign: 'center' }}>
-                    <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.5rem' }}>Actual Route Distance</span>
-                    <span style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                      {(activeRoute.features[0].properties.summary.distance / 1000).toFixed(2)} km
-                    </span>
-                  </div>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.75rem', color: 'var(--text-secondary)', borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
-                  <span>Shape: {activeRoute.metadata?.directionAngle !== undefined ? '3 points (Triangle)' : '6 points (Hexagon)'}</span>
-                  <span>Variation seed: {activeRoute.metadata?.seed || seed}</span>
-                </div>
-              </div>
-            )}
-
-            {!activeRoute && center && (
-              <div className="glass-panel animate-fade-in" style={{ padding: '1rem', marginTop: '1rem', background: 'rgba(59, 130, 246, 0.1)', border: '1px dashed var(--accent-primary)', color: 'white', textAlign: 'center', fontSize: '0.875rem' }}>
-                ✨ <strong>Draw a Direction (Optional)</strong>: Right-click and drag your mouse on the map starting from your marker to specify your running direction! Or just click "Generate Route" to create a standard circular route.
-              </div>
-            )}
           </div>
 
-          <div className="animate-fade-in" style={{ animationDelay: '200ms', position: 'sticky', top: '2rem' }}>
+          <div className="animate-fade-in" style={{ animationDelay: '200ms' }}>
             <MapDisplay 
               center={center} 
               route={activeRoute} 
               drawMode={true}
               onDirectionDrawn={handleDirectionDrawn}
               onMapClick={handleMapClick}
+              directionAngle={directionAngle}
             />
           </div>
 

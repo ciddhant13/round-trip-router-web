@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from 'react';
-import { MapPin, Navigation, Route as RouteIcon, Loader2, RefreshCw } from 'lucide-react';
+import { MapPin, Navigation, Route as RouteIcon, Loader2, RefreshCw, X } from 'lucide-react';
 
 export default function LocationForm({ 
   onSubmit, 
@@ -14,10 +14,17 @@ export default function LocationForm({
   setCoords,
   locationText,
   setLocationText,
-  setDirectionAngle
+  setDirectionAngle,
+  actualDistance,
+  directionAngle
 }) {
   const [isLocating, setIsLocating] = useState(false);
   const [error, setError] = useState(null);
+  const [isCompassHovered, setIsCompassHovered] = useState(false);
+
+  const handleClearDirection = () => {
+    if (setDirectionAngle) setDirectionAngle(null);
+  };
 
   // States to track dynamic button CTA text
   const [lastSubmittedText, setLastSubmittedText] = useState('');
@@ -101,10 +108,86 @@ export default function LocationForm({
     }
   };
 
+  const getCardinalDirection = (angleRad) => {
+    if (angleRad === null || angleRad === undefined) return '';
+    const degrees = (90 - (angleRad * 180 / Math.PI) + 360) % 360;
+    const directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+    const index = Math.round(degrees / 45) % 8;
+    return directions[index];
+  };
+
   return (
     <div className="glass-panel" style={{ padding: '1.5rem', marginBottom: '1.5rem' }}>
-      <h2 style={{ fontSize: '1.5rem', fontWeight: 600, marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-        <RouteIcon className="text-gradient" /> Route Settings
+      <h2 style={{ 
+        fontSize: '1.5rem', 
+        fontWeight: 600, 
+        marginBottom: '1.5rem', 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'space-between',
+        width: '100%'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <RouteIcon className="text-gradient" /> Route Settings
+        </div>
+        
+        {/* Sleek cardinal direction pill with smart hover reset */}
+        {directionAngle !== null && directionAngle !== undefined && (
+          <button
+            type="button"
+            onClick={handleClearDirection}
+            onMouseEnter={() => setIsCompassHovered(true)}
+            onMouseLeave={() => setIsCompassHovered(false)}
+            title="Clear preferred direction"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '0.35rem 0.75rem',
+              borderRadius: 'var(--radius-full)',
+              background: 'transparent',
+              border: isCompassHovered ? '1px solid rgba(239, 68, 68, 0.6)' : '1px solid rgba(255, 102, 0, 0.5)',
+              color: isCompassHovered ? 'var(--error)' : '#ff6600',
+              fontSize: '0.75rem',
+              fontWeight: 700,
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em',
+              outline: 'none',
+              flexShrink: 0
+            }}
+          >
+            {isCompassHovered ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                <span>Reset</span>
+                <X size={12} />
+              </div>
+            ) : (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                <svg 
+                  viewBox="0 0 24 24" 
+                  strokeWidth="2.5" 
+                  stroke="#ff6600" 
+                  fill="none" 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round" 
+                  style={{ 
+                    width: '14px', 
+                    height: '14px', 
+                    transform: `rotate(${90 - (directionAngle * 180 / Math.PI)}deg)`,
+                    transition: 'transform 0.4s ease',
+                    pointerEvents: 'none'
+                  }}
+                >
+                  <line x1="12" y1="20" x2="12" y2="4" />
+                  <polyline points="5 11 12 4 19 11" />
+                </svg>
+                <span>{getCardinalDirection(directionAngle)}</span>
+              </div>
+            )}
+          </button>
+        )}
       </h2>
       
       {error && (
@@ -144,33 +227,50 @@ export default function LocationForm({
         </div>
 
         <div>
-          <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Target Distance (km)</label>
-          <input 
-            type="number" 
-            className="input-field" 
-            min="1" 
-            max="50" 
-            step="0.1"
-            value={distance}
-            onChange={(e) => setDistance(parseFloat(e.target.value))}
-            disabled={isGenerating}
-          />
+          <div style={{ display: 'flex', gap: actualDistance ? '1rem' : '0px', transition: 'all 0.3s ease' }}>
+            {/* Target Distance Column */}
+            <div style={{ flex: 1, width: actualDistance ? '50%' : '100%', minWidth: 0, transition: 'all 0.3s ease' }}>
+              <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Target Distance (km)</label>
+              <input 
+                type="number" 
+                className="input-field" 
+                min="1" 
+                max="50" 
+                step="0.1"
+                value={distance}
+                onChange={(e) => setDistance(parseFloat(e.target.value))}
+                disabled={isGenerating}
+              />
+            </div>
+            
+            {/* Actual Distance Column */}
+            <div style={{ 
+              width: actualDistance ? '50%' : '0%', 
+              opacity: actualDistance ? 1 : 0, 
+              overflow: 'hidden', 
+              minWidth: 0,
+              transition: 'all 0.3s ease',
+              whiteSpace: 'nowrap'
+            }}>
+              <label style={{ display: 'block', marginBottom: '0.5rem', color: '#ff6600', fontSize: '0.875rem', fontWeight: 600 }}>Actual Distance (km)</label>
+              <div className="input-field" style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center', 
+                fontWeight: 700, 
+                color: '#0f1115', 
+                borderColor: '#ff6600',
+                background: '#ff6600',
+                fontSize: '1.125rem'
+              }}>
+                {actualDistance}
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Points selector removed from UI, hardcoded to 6 (Hexagon) for optimal circular routes */}
 
-        <div>
-          <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Route Flavours</label>
-          <input 
-            type="number" 
-            className="input-field" 
-            value={3}
-            disabled={true}
-          />
-          <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
-            Fixed to 3 distinct variations for this MVP.
-          </p>
-        </div>
 
         <button 
           type="submit" 

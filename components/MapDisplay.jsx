@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { setOptions, importLibrary } from '@googlemaps/js-api-loader';
 
 const darkMapStyles = [
@@ -40,21 +40,21 @@ const darkMapStyles = [
     stylers: [{ color: "#111827" }]
   },
 
-  // Highways: Distinct Bronze/Amber lines with bright text labels
+  // Highways: Sleek dark slate/charcoal for clean layout integration
   {
     featureType: "road.highway",
     elementType: "geometry",
-    stylers: [{ color: "#451a03" }] // Dark amber base
+    stylers: [{ color: "#2d333f" }] // Dark slate base
   },
   {
     featureType: "road.highway",
     elementType: "geometry.stroke",
-    stylers: [{ color: "#b45309" }] // Gold/amber stroke
+    stylers: [{ color: "#3d4454" }] // Slightly lighter slate border
   },
   {
     featureType: "road.highway",
     elementType: "labels.text.fill",
-    stylers: [{ color: "#fbbf24" }] // Bright yellow-amber text
+    stylers: [{ color: "#e5e7eb" }] // Clean light gray labels
   },
 
   // Local/Arterial Roads: Structured charcoal
@@ -97,17 +97,17 @@ const darkMapStyles = [
   }
 ];
 
-export default function MapDisplay({ center, route, drawMode, onDirectionDrawn, onMapClick }) {
+export default function MapDisplay({ center, route, drawMode, onDirectionDrawn, onMapClick, directionAngle }) {
   const mapRef = useRef(null);
   const mapInstance = useRef(null);
   const polylineInstance = useRef(null);
-  const polylineGlowInstance = useRef(null); // Ref for background neon glow
   const markerInstance = useRef(null);
   
   const isDrawing = useRef(false);
   const drawingPolyline = useRef(null);
   const directionArrow = useRef(null);
   const drawingListeners = useRef([]);
+  const [mapReady, setMapReady] = useState(false);
 
   // Store click handler in a ref to avoid map recreation / listener ref issues
   const onMapClickRef = useRef(onMapClick);
@@ -132,8 +132,8 @@ export default function MapDisplay({ center, route, drawMode, onDirectionDrawn, 
       const { Map } = await importLibrary("maps");
       const { Marker } = await importLibrary("marker");
 
-      // Default center to Heidelberg, Germany if center is not yet loaded
-      const defaultCenter = center || { lat: 49.41461, lng: 8.681495 };
+      // Default center to Bengaluru Vidhana Soudha if center is not yet loaded
+      const defaultCenter = center || { lat: 12.979693, lng: 77.590674 };
 
       if (!mapInstance.current && mapRef.current) {
         mapInstance.current = new Map(mapRef.current, {
@@ -153,6 +153,7 @@ export default function MapDisplay({ center, route, drawMode, onDirectionDrawn, 
             });
           }
         });
+        setMapReady(true);
       }
 
       // Update Center and Marker
@@ -324,12 +325,17 @@ export default function MapDisplay({ center, route, drawMode, onDirectionDrawn, 
       }
       window.removeEventListener('mouseup', onWindowMouseUp);
     };
-  }, [drawMode, onDirectionDrawn]);
+  }, [drawMode, onDirectionDrawn, mapReady]);
 
-  // Handle Route Drawing and Animations (Pulsating neon cyan glow + Static direction arrows)
+  // Handle Route Drawing (Static neon orange glow + Static fuchsia open direction chevron arrows)
+  // Handle direction arrow clearing when directionAngle is reset to null
   useEffect(() => {
-    let animationFrameId;
-
+    if ((directionAngle === null || directionAngle === undefined) && directionArrow.current) {
+      directionArrow.current.setMap(null);
+      directionArrow.current = null;
+    }
+  }, [directionAngle]);
+  useEffect(() => {
     const drawRoute = async () => {
       if (!mapInstance.current || !route) return;
 
@@ -345,45 +351,19 @@ export default function MapDisplay({ center, route, drawMode, onDirectionDrawn, 
         lng: c[0]
       }));
 
-      // Clear existing polylines
+      // Clear existing polyline
       if (polylineInstance.current) {
         polylineInstance.current.setMap(null);
         polylineInstance.current = null;
       }
-      if (polylineGlowInstance.current) {
-        polylineGlowInstance.current.setMap(null);
-        polylineGlowInstance.current = null;
-      }
 
-      // 1. Background Neon Glow Polyline
-      polylineGlowInstance.current = new Polyline({
-        path: coords,
-        geodesic: true,
-        strokeColor: "#0891b2", // Glowing cyan/teal
-        strokeOpacity: 0.35,
-        strokeWeight: 8,
-        map: mapInstance.current
-      });
-
-      // 2. Foreground Solid Path Polyline with static white direction arrows
+      // Draw a plain solid bright orange route path
       polylineInstance.current = new Polyline({
         path: coords,
         geodesic: true,
-        strokeColor: "#00f0ff", // Bright neon electric cyan
-        strokeOpacity: 0.9,
-        strokeWeight: 4,
-        icons: [{
-          icon: {
-            path: window.google.maps.SymbolPath.FORWARD_CLOSED_ARROW,
-            scale: 2.2,
-            strokeColor: "#ffffff",
-            fillColor: "#ffffff",
-            fillOpacity: 1.0,
-            strokeWeight: 1
-          },
-          offset: '0px',
-          repeat: '80px' // Spaced out static direction indicators
-        }],
+        strokeColor: "#ff6600", // Brighter solid orange
+        strokeOpacity: 1.0,     // Plain solid color
+        strokeWeight: 5,        // Direct thick outline
         map: mapInstance.current
       });
 
@@ -392,39 +372,14 @@ export default function MapDisplay({ center, route, drawMode, onDirectionDrawn, 
       const bounds = new LatLngBounds();
       coords.forEach(c => bounds.extend(c));
       mapInstance.current.fitBounds(bounds, { padding: 40 });
-
-      // Start the route breathing pulsation animation loop (arrows remain static)
-      const animate = () => {
-        // Pulsating breathing glow animation
-        if (polylineGlowInstance.current) {
-          const time = Date.now() * 0.003;
-          const opacity = 0.3 + Math.sin(time) * 0.12; // Pulsate opacity between 0.18 and 0.42
-          const weight = 8 + Math.sin(time) * 2; // Pulsate weight between 6px and 10px
-          polylineGlowInstance.current.setOptions({
-            strokeOpacity: opacity,
-            strokeWeight: weight
-          });
-        }
-
-        animationFrameId = requestAnimationFrame(animate);
-      };
-
-      animate();
     };
 
     drawRoute();
 
     return () => {
-      if (animationFrameId) {
-        cancelAnimationFrame(animationFrameId);
-      }
       if (polylineInstance.current) {
         polylineInstance.current.setMap(null);
         polylineInstance.current = null;
-      }
-      if (polylineGlowInstance.current) {
-        polylineGlowInstance.current.setMap(null);
-        polylineGlowInstance.current = null;
       }
     };
   }, [route]);
