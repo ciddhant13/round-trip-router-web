@@ -235,6 +235,10 @@ ${trkpts}
           </div>
 
         </div>
+
+        <footer style={{ marginTop: '3rem', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.75rem', opacity: 0.5 }}>
+          v1.2.0
+        </footer>
       </div>
     </main>
   );

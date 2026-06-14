@@ -1,0 +1,30 @@
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+## [1.2.0] - 2026-06-14
+### Added
+- **Mobile Gesture Support**: Added a 500ms long-press detector to draw circular route directions on mobile touch screens.
+- **Haptic Feedback**: Trigger minor vibration haptic (50ms) on mobile devices when long-press successfully locks the map into drawing mode.
+- **Version Number**: Added a minimal version footer `v1.2.0` in the UI to track active deployments.
+
+---
+
+## [1.1.0] - 2026-06-14
+### Changed
+- **Brighter Dark Mode Map**: Increased CartoDB Dark Matter tile brightness filter to `brightness(2.0) contrast(1.1) saturate(1.3)` for clearer road and label visibility.
+- **Inline GPX Button**: Integrated GPX export directly inline with the main "Generate Route" CTA, with smooth `max-width` and `margin-left` transitions that slide open when a route is active and collapse out when cleared.
+- **Auto-expansion of CTA**: Allowed main route button to stretch full-width when GPX export is not active.
+- **Layout Alignments**: Set `line-height: normal` on `.input-field` so the target input height matches the actual distance block exactly.
+
+### Fixed
+- **Geolocation Race Condition**: Resolved issue where map failed to pan to user location on load.
+- **Streak Center Shift Bug**: Ensured drawing a direction streak doesn't shift the starting coordinate of the route (direction calculations now use the fixed marker coordinates).
+- **Cleanup Ref Overlay**: Removed stale arrow/polyline overlay DOM references from mouse-up handlers.
+
+---
+
+## [1.0.0] - 2026-06-14
+### Changed
+- **Leaflet Migration**: Replaced Google Maps API with Leaflet.js and OpenRouteService, eliminating Google billing requirements.
+- **Export GPX**: Introduced client-side GPX 1.1 file generation and download capabilities.
