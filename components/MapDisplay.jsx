@@ -204,11 +204,15 @@ export default function MapDisplay({ center, route, drawMode, onDirectionDrawn, 
         }
       };
 
-      const onTouchStart = (e) => {
+      const onDomTouchStart = (e) => {
         if (!isDrawModeRef.current) return;
-        if (e.originalEvent.touches && e.originalEvent.touches.length !== 1) return;
+        if (e.touches && e.touches.length !== 1) return;
 
-        const latlng = e.latlng || (e.originalEvent.touches && e.originalEvent.touches[0] ? map.mouseEventToLatLng(e.originalEvent.touches[0]) : null);
+        // Prevent browser gestures / zoom / pull-to-refresh
+        e.preventDefault();
+
+        const touch = e.touches[0];
+        const latlng = map.mouseEventToLatLng(touch);
         if (!latlng) return;
 
         isDrawing.current = true;
@@ -220,29 +224,30 @@ export default function MapDisplay({ center, route, drawMode, onDirectionDrawn, 
         ).addTo(map);
       };
 
-      const onTouchMove = (e) => {
+      const onDomTouchMove = (e) => {
         if (!isDrawing.current) return;
+        if (e.touches && e.touches.length !== 1) return;
 
-        const latlng = e.latlng || (e.originalEvent.touches && e.originalEvent.touches[0] ? map.mouseEventToLatLng(e.originalEvent.touches[0]) : null);
+        e.preventDefault();
+        e.stopPropagation();
+
+        const touch = e.touches[0];
+        const latlng = map.mouseEventToLatLng(touch);
         if (!latlng) return;
 
-        if (e.originalEvent.touches && e.originalEvent.touches.length === 1 && gesturePolyline.current) {
-          e.originalEvent.preventDefault();
-          e.originalEvent.stopPropagation();
-          gesturePoints.current.push(latlng);
-          gesturePolyline.current.setLatLngs(
-            gesturePoints.current.map(p => [p.lat, p.lng])
-          );
-        }
+        gesturePoints.current.push(latlng);
+        gesturePolyline.current.setLatLngs(
+          gesturePoints.current.map(p => [p.lat, p.lng])
+        );
       };
 
-      const onTouchEnd = () => {
+      const onDomTouchEnd = () => {
         if (isDrawing.current) {
           finishDrawing();
         }
       };
 
-      const onTouchCancel = () => {
+      const onDomTouchCancel = () => {
         if (isDrawing.current) {
           isDrawing.current = false;
           setIsDrawMode(false);
@@ -267,19 +272,19 @@ export default function MapDisplay({ center, route, drawMode, onDirectionDrawn, 
       map.on('mousemove', onMouseMove);
       map.on('mouseup',   onMouseUp);
 
-      map.on('touchstart', onTouchStart);
-      map.on('touchmove',  onTouchMove);
-      map.on('touchend',   onTouchEnd);
-      map.on('touchcancel', onTouchCancel);
+      container.addEventListener('touchstart', onDomTouchStart, { passive: false });
+      container.addEventListener('touchmove',  onDomTouchMove,  { passive: false });
+      container.addEventListener('touchend',   onDomTouchEnd);
+      container.addEventListener('touchcancel', onDomTouchCancel);
 
       return () => {
         map.off('mousedown', onMouseDown);
         map.off('mousemove', onMouseMove);
         map.off('mouseup',   onMouseUp);
-        map.off('touchstart', onTouchStart);
-        map.off('touchmove',  onTouchMove);
-        map.off('touchend',   onTouchEnd);
-        map.off('touchcancel', onTouchCancel);
+        container.removeEventListener('touchstart', onDomTouchStart);
+        container.removeEventListener('touchmove',  onDomTouchMove);
+        container.removeEventListener('touchend',   onDomTouchEnd);
+        container.removeEventListener('touchcancel', onDomTouchCancel);
         container.removeEventListener('contextmenu', preventContextMenu);
         window.removeEventListener('mouseup', onWindowMouseUp);
         map.dragging.enable();

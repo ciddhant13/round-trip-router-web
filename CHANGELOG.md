@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.1] - 2026-06-14
+### Fixed
+- **Native DOM Touch Event Bindings**: Shifted touchstart, touchmove, touchend, and touchcancel listeners from Leaflet's map object directly to the map's native DOM container. This ensures touch events fire reliably even when Leaflet's map dragging is disabled (which normally disables Leaflet's internal touch-to-mouse translation system).
+- **Viewport Scroll Prevention**: Bound DOM touch events using `{ passive: false }` to guarantee that browser scrolling is completely blocked during the swipe gesture.
+
+---
+
 ## [1.3.0] - 2026-06-14
 ### Added
 - **Draw Direction FAB Button**: Overlaid a floating button (`Compass` icon) on the map. Tapping this button locks map dragging instantly, letting mobile and trackpad users swipe a single finger/drag a mouse anywhere to draw the route direction streak.
