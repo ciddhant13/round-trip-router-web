@@ -192,7 +192,7 @@ ${trkpts}
             Circular <span className="text-gradient">Routes</span>
           </h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: '1.125rem', maxWidth: '600px', margin: '0 auto' }}>
-            Right click and drag your cursor on the map to set the preferred general direction of your route.
+            Right-click & drag on the map (or use the "Draw Direction" button) to set your route's heading.
           </p>
         </header>
 
@@ -237,7 +237,7 @@ ${trkpts}
         </div>
 
         <footer style={{ marginTop: '3rem', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.75rem', opacity: 0.5 }}>
-          v1.2.2
+          v1.3.0
         </footer>
       </div>
     </main>

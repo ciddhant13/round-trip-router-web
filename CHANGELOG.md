@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.0] - 2026-06-14
+### Added
+- **Draw Direction FAB Button**: Overlaid a floating button (`Compass` icon) on the map. Tapping this button locks map dragging instantly, letting mobile and trackpad users swipe a single finger/drag a mouse anywhere to draw the route direction streak.
+- **Auto-reset State**: Drawing completes upon finger lift, resetting map dragging and turning off Draw Mode automatically.
+- **Custom CSS Animation**: Added slow rotation animation for the compass icon while drawing mode is active.
+
+---
+
 ## [1.2.2] - 2026-06-14
 ### Fixed
 - **Active Drag Release**: Forced Leaflet's underlying `L.Draggable` state machine to terminate active touch dragging on long press (`_draggable._onUp()`).

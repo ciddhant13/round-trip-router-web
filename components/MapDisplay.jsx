@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from 'react';
+import { Compass } from 'lucide-react';
 
 export default function MapDisplay({ center, route, drawMode, onDirectionDrawn, onMapClick, directionAngle }) {
   const mapRef = useRef(null);
@@ -14,6 +15,8 @@ export default function MapDisplay({ center, route, drawMode, onDirectionDrawn, 
   const gesturePoints = useRef([]);
 
   const [mapReady, setMapReady] = useState(false);
+  const [isDrawMode, setIsDrawMode] = useState(false);
+  const isDrawModeRef = useRef(false);
 
   // Store callbacks in refs so effects don't need to re-run on every render
   const onMapClickRef = useRef(onMapClick);
@@ -21,6 +24,18 @@ export default function MapDisplay({ center, route, drawMode, onDirectionDrawn, 
 
   const onDirectionDrawnRef = useRef(onDirectionDrawn);
   useEffect(() => { onDirectionDrawnRef.current = onDirectionDrawn; }, [onDirectionDrawn]);
+
+  // Keep draw mode ref in sync and disable map panning while active
+  useEffect(() => {
+    isDrawModeRef.current = isDrawMode;
+    if (mapInstance.current) {
+      if (isDrawMode) {
+        mapInstance.current.dragging.disable();
+      } else {
+        mapInstance.current.dragging.enable();
+      }
+    }
+  }, [isDrawMode]);
 
   // ── 1. Initialise Leaflet map once ────────────────────────────────────────
   useEffect(() => {
@@ -120,6 +135,8 @@ export default function MapDisplay({ center, route, drawMode, onDirectionDrawn, 
       const finishDrawing = () => {
         if (!isDrawing.current) return;
         isDrawing.current = false;
+        
+        setIsDrawMode(false);
         map.dragging.enable();
 
         // Remove live drawing line immediately
@@ -149,7 +166,9 @@ export default function MapDisplay({ center, route, drawMode, onDirectionDrawn, 
       };
 
       const onMouseDown = (e) => {
-        if (e.originalEvent.button !== 2) return; // right-click only
+        const isRightClick = e.originalEvent.button === 2;
+        if (!isRightClick && !isDrawModeRef.current) return;
+        
         e.originalEvent.preventDefault();
         isDrawing.current = true;
         gesturePoints.current = [e.latlng];
@@ -163,8 +182,15 @@ export default function MapDisplay({ center, route, drawMode, onDirectionDrawn, 
 
       const onMouseMove = (e) => {
         if (!isDrawing.current || !gesturePolyline.current) return;
-        // If right button released mid-move (bitmask bit 2)
-        if ((e.originalEvent.buttons & 2) === 0) { finishDrawing(); return; }
+        
+        const isRightClickDrag = (e.originalEvent.buttons & 2) !== 0;
+        const isLeftClickDrag = (e.originalEvent.buttons & 1) !== 0;
+        
+        if (!isRightClickDrag && !isLeftClickDrag) { 
+          finishDrawing(); 
+          return; 
+        }
+
         gesturePoints.current.push(e.latlng);
         gesturePolyline.current.setLatLngs(
           gesturePoints.current.map(p => [p.lat, p.lng])
@@ -172,70 +198,34 @@ export default function MapDisplay({ center, route, drawMode, onDirectionDrawn, 
       };
 
       const onMouseUp = (e) => {
-        if (e.originalEvent.button !== 2) return;
-        finishDrawing();
+        const isRightClick = e.originalEvent.button === 2;
+        if (isRightClick || isDrawModeRef.current) {
+          finishDrawing();
+        }
       };
 
       const onTouchStart = (e) => {
-        if (e.originalEvent.touches && e.originalEvent.touches.length !== 1) {
-          if (touchTimeout) {
-            clearTimeout(touchTimeout);
-            touchTimeout = null;
-          }
-          return;
-        }
+        if (!isDrawModeRef.current) return;
+        if (e.originalEvent.touches && e.originalEvent.touches.length !== 1) return;
 
         const latlng = e.latlng || (e.originalEvent.touches && e.originalEvent.touches[0] ? map.mouseEventToLatLng(e.originalEvent.touches[0]) : null);
         if (!latlng) return;
-        touchStartLatLng = latlng;
 
-        if (touchTimeout) clearTimeout(touchTimeout);
+        isDrawing.current = true;
+        gesturePoints.current = [latlng];
 
-        touchTimeout = setTimeout(() => {
-          if (navigator.vibrate) {
-            navigator.vibrate(50);
-          }
-          isDrawing.current = true;
-          gesturePoints.current = [latlng];
-          
-          map.dragging.disable();
-          // Force stop the currently active touch drag tracker in Leaflet
-          if (map.dragging._draggable) {
-            try {
-              map.dragging._draggable._onUp();
-            } catch (err) {
-              // fallback
-            }
-          }
-
-          gesturePolyline.current = L.polyline(
-            [[latlng.lat, latlng.lng]],
-            { color: '#3b82f6', weight: 3, opacity: 0.6, dashArray: '6 4' }
-          ).addTo(map);
-
-          touchTimeout = null;
-        }, 500);
+        gesturePolyline.current = L.polyline(
+          [[latlng.lat, latlng.lng]],
+          { color: '#3b82f6', weight: 3, opacity: 0.6, dashArray: '6 4' }
+        ).addTo(map);
       };
 
       const onTouchMove = (e) => {
+        if (!isDrawing.current) return;
+
         const latlng = e.latlng || (e.originalEvent.touches && e.originalEvent.touches[0] ? map.mouseEventToLatLng(e.originalEvent.touches[0]) : null);
         if (!latlng) return;
 
-        if (!isDrawing.current) {
-          // If dragging has moved finger significantly, cancel long press
-          if (touchTimeout && touchStartLatLng) {
-            const startPt = map.latLngToContainerPoint(touchStartLatLng);
-            const currentPt = map.latLngToContainerPoint(latlng);
-            const distance = Math.hypot(currentPt.x - startPt.x, currentPt.y - startPt.y);
-            if (distance > 40) {
-              clearTimeout(touchTimeout);
-              touchTimeout = null;
-            }
-          }
-          return;
-        }
-
-        // We are drawing direction
         if (e.originalEvent.touches && e.originalEvent.touches.length === 1 && gesturePolyline.current) {
           e.originalEvent.preventDefault();
           e.originalEvent.stopPropagation();
@@ -247,22 +237,15 @@ export default function MapDisplay({ center, route, drawMode, onDirectionDrawn, 
       };
 
       const onTouchEnd = () => {
-        if (touchTimeout) {
-          clearTimeout(touchTimeout);
-          touchTimeout = null;
-        }
         if (isDrawing.current) {
           finishDrawing();
         }
       };
 
       const onTouchCancel = () => {
-        if (touchTimeout) {
-          clearTimeout(touchTimeout);
-          touchTimeout = null;
-        }
         if (isDrawing.current) {
           isDrawing.current = false;
+          setIsDrawMode(false);
           map.dragging.enable();
           if (gesturePolyline.current) {
             map.removeLayer(gesturePolyline.current);
@@ -373,6 +356,13 @@ export default function MapDisplay({ center, route, drawMode, onDirectionDrawn, 
           background: #2d333f !important;
           color: #f8fafc !important;
         }
+        @keyframes slow-spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        .spin-slow {
+          animation: slow-spin 6s linear infinite;
+        }
       `}</style>
 
       <div
@@ -380,6 +370,55 @@ export default function MapDisplay({ center, route, drawMode, onDirectionDrawn, 
         style={{ height: '500px', width: '100%', overflow: 'hidden', position: 'relative' }}
       >
         <div ref={mapRef} style={{ width: '100%', height: '100%' }} />
+
+        {/* Floating Draw Mode Action Button */}
+        <button
+          type="button"
+          onClick={() => setIsDrawMode(!isDrawMode)}
+          style={{
+            position: 'absolute',
+            top: '12px',
+            right: '12px',
+            zIndex: 1000,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            padding: '0.6rem 1.1rem',
+            borderRadius: 'var(--radius-md)',
+            background: isDrawMode ? '#ff6600' : 'var(--bg-secondary)',
+            border: '1px solid ' + (isDrawMode ? '#ff6600' : 'rgba(255, 255, 255, 0.15)'),
+            color: isDrawMode ? '#ffffff' : 'var(--text-secondary)',
+            fontSize: '0.875rem',
+            fontWeight: 600,
+            cursor: 'pointer',
+            boxShadow: 'var(--shadow-md)',
+            transition: 'all 0.2s ease',
+            letterSpacing: '0.02em',
+            userSelect: 'none',
+          }}
+          onMouseEnter={e => {
+            if (!isDrawMode) {
+              e.currentTarget.style.borderColor = '#ff6600';
+              e.currentTarget.style.color = 'var(--text-primary)';
+            }
+          }}
+          onMouseLeave={e => {
+            if (!isDrawMode) {
+              e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.15)';
+              e.currentTarget.style.color = 'var(--text-secondary)';
+            }
+          }}
+        >
+          <Compass 
+            size={16} 
+            className={isDrawMode ? "spin-slow" : ""} 
+            style={{ 
+              transition: 'transform 0.2s ease',
+              color: isDrawMode ? '#ffffff' : 'inherit'
+            }} 
+          />
+          {isDrawMode ? 'Draw Direction...' : 'Draw Direction'}
+        </button>
       </div>
     </>
   );
