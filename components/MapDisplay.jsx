@@ -3,10 +3,77 @@
 import { useEffect, useRef } from 'react';
 import { setOptions, importLibrary } from '@googlemaps/js-api-loader';
 
+const darkMapStyles = [
+  { elementType: "geometry", stylers: [{ color: "#1e1e24" }] },
+  { elementType: "labels.text.stroke", stylers: [{ color: "#1e1e24" }] },
+  { elementType: "labels.text.fill", stylers: [{ color: "#8b949e" }] },
+  {
+    featureType: "administrative",
+    elementType: "geometry.stroke",
+    stylers: [{ color: "#30363d" }]
+  },
+  {
+    featureType: "landscape",
+    elementType: "geometry",
+    stylers: [{ color: "#161b22" }]
+  },
+  {
+    featureType: "poi",
+    elementType: "geometry",
+    stylers: [{ color: "#161b22" }]
+  },
+  {
+    featureType: "poi",
+    elementType: "labels.text.fill",
+    stylers: [{ color: "#8b949e" }]
+  },
+  {
+    featureType: "road",
+    elementType: "geometry",
+    stylers: [{ color: "#21262d" }]
+  },
+  {
+    featureType: "road",
+    elementType: "geometry.stroke",
+    stylers: [{ color: "#30363d" }]
+  },
+  {
+    featureType: "road",
+    elementType: "labels.text.fill",
+    stylers: [{ color: "#c9d1d9" }]
+  },
+  {
+    featureType: "road.highway",
+    elementType: "geometry",
+    stylers: [{ color: "#30363d" }]
+  },
+  {
+    featureType: "road.highway",
+    elementType: "geometry.stroke",
+    stylers: [{ color: "#8b949e" }]
+  },
+  {
+    featureType: "transit",
+    elementType: "geometry",
+    stylers: [{ color: "#161b22" }]
+  },
+  {
+    featureType: "water",
+    elementType: "geometry",
+    stylers: [{ color: "#0d1117" }]
+  },
+  {
+    featureType: "water",
+    elementType: "labels.text.fill",
+    stylers: [{ color: "#58a6ff" }]
+  }
+];
+
 export default function MapDisplay({ center, route, drawMode, onDirectionDrawn, onMapClick }) {
   const mapRef = useRef(null);
   const mapInstance = useRef(null);
   const polylineInstance = useRef(null);
+  const polylineGlowInstance = useRef(null); // Ref for background neon glow
   const markerInstance = useRef(null);
   
   const isDrawing = useRef(false);
@@ -44,17 +111,9 @@ export default function MapDisplay({ center, route, drawMode, onDirectionDrawn, 
         mapInstance.current = new Map(mapRef.current, {
           center: defaultCenter,
           zoom: 14,
-          mapId: 'DEMO_MAP_ID',
           disableDefaultUI: true,
           zoomControl: true,
-          styles: [
-            { elementType: "geometry", stylers: [{ color: "#242f3e" }] },
-            { elementType: "labels.text.stroke", stylers: [{ color: "#242f3e" }] },
-            { elementType: "labels.text.fill", stylers: [{ color: "#746855" }] },
-            { featureType: "water", elementType: "geometry", stylers: [{ color: "#17263c" }] },
-            { featureType: "water", elementType: "labels.text.fill", stylers: [{ color: "#515c6d" }] },
-            { featureType: "water", elementType: "labels.text.stroke", stylers: [{ color: "#17263c" }] }
-          ]
+          styles: darkMapStyles
         });
 
         // Add map click listener to select a start location
@@ -239,8 +298,10 @@ export default function MapDisplay({ center, route, drawMode, onDirectionDrawn, 
     };
   }, [drawMode, onDirectionDrawn]);
 
-  // Handle Route Drawing
+  // Handle Route Drawing and Animations (Pulsating neon glow + Flowing direction arrows)
   useEffect(() => {
+    let animationFrameId;
+
     const drawRoute = async () => {
       if (!mapInstance.current || !route) return;
 
@@ -256,17 +317,45 @@ export default function MapDisplay({ center, route, drawMode, onDirectionDrawn, 
         lng: c[0]
       }));
 
-      // Clear existing polyline
+      // Clear existing polylines
       if (polylineInstance.current) {
         polylineInstance.current.setMap(null);
+        polylineInstance.current = null;
+      }
+      if (polylineGlowInstance.current) {
+        polylineGlowInstance.current.setMap(null);
+        polylineGlowInstance.current = null;
       }
 
+      // 1. Background Neon Glow Polyline
+      polylineGlowInstance.current = new Polyline({
+        path: coords,
+        geodesic: true,
+        strokeColor: "#c084fc", // Glowing neon purple
+        strokeOpacity: 0.35,
+        strokeWeight: 8,
+        map: mapInstance.current
+      });
+
+      // 2. Foreground Solid Path Polyline with flowing white direction arrows
       polylineInstance.current = new Polyline({
         path: coords,
         geodesic: true,
-        strokeColor: "#a855f7",
-        strokeOpacity: 0.8,
-        strokeWeight: 5,
+        strokeColor: "#ec4899", // Vibrant neon fuchsia
+        strokeOpacity: 0.85,
+        strokeWeight: 4,
+        icons: [{
+          icon: {
+            path: window.google.maps.SymbolPath.FORWARD_CLOSED_ARROW,
+            scale: 2.2,
+            strokeColor: "#ffffff",
+            fillColor: "#ffffff",
+            fillOpacity: 1.0,
+            strokeWeight: 1
+          },
+          offset: '0px',
+          repeat: '60px' // Repeat arrow every 60px
+        }],
         map: mapInstance.current
       });
 
@@ -275,9 +364,52 @@ export default function MapDisplay({ center, route, drawMode, onDirectionDrawn, 
       const bounds = new LatLngBounds();
       coords.forEach(c => bounds.extend(c));
       mapInstance.current.fitBounds(bounds, { padding: 40 });
+
+      // Start the route animation loop
+      let count = 0;
+      const animate = () => {
+        // Flowing arrows animation
+        count = (count + 1) % 60;
+        if (polylineInstance.current) {
+          const icons = polylineInstance.current.get('icons');
+          if (icons && icons[0]) {
+            icons[0].offset = count + 'px';
+            polylineInstance.current.set('icons', icons);
+          }
+        }
+
+        // Pulsating breathing glow animation
+        if (polylineGlowInstance.current) {
+          const time = Date.now() * 0.003;
+          const opacity = 0.3 + Math.sin(time) * 0.12; // Pulsate opacity between 0.18 and 0.42
+          const weight = 8 + Math.sin(time) * 2; // Pulsate weight between 6px and 10px
+          polylineGlowInstance.current.setOptions({
+            strokeOpacity: opacity,
+            strokeWeight: weight
+          });
+        }
+
+        animationFrameId = requestAnimationFrame(animate);
+      };
+
+      animate();
     };
 
     drawRoute();
+
+    return () => {
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
+      if (polylineInstance.current) {
+        polylineInstance.current.setMap(null);
+        polylineInstance.current = null;
+      }
+      if (polylineGlowInstance.current) {
+        polylineGlowInstance.current.setMap(null);
+        polylineGlowInstance.current = null;
+      }
+    };
   }, [route]);
 
   return (
