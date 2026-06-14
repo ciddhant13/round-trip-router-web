@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import LocationForm from '@/components/LocationForm';
 import MapDisplay from '@/components/MapDisplay';
-import { Route as RouteIcon, Compass } from 'lucide-react';
+import { Route as RouteIcon, Download } from 'lucide-react';
 
 export default function Home() {
   const [center, setCenter] = useState(null);
@@ -94,7 +94,7 @@ export default function Home() {
     };
 
     // Detect if the user changed the location coordinates, target distance, or direction
-    const isNewRequest = !lastSubmission || 
+    const isNewRequest = !lastSubmission ||
       lastSubmission.coordinates[0] !== requestData.coordinates[0] ||
       lastSubmission.coordinates[1] !== requestData.coordinates[1] ||
       lastSubmission.distanceKm !== requestData.distanceKm ||
@@ -128,7 +128,7 @@ export default function Home() {
       }
 
       const result = await res.json();
-      
+
       if (result.route) {
         setActiveRoute(result.route);
       } else {
@@ -143,10 +143,45 @@ export default function Home() {
     }
   };
 
+  // Export the active route as a GPX file
+  const handleExportGPX = () => {
+    if (!activeRoute) return;
+
+    const coords = activeRoute.features[0].geometry.coordinates;
+    const distanceKm = (activeRoute.features[0].properties.summary.distance / 1000).toFixed(2);
+    const now = new Date().toISOString();
+
+    const trkpts = coords
+      .map(([lng, lat]) => `      <trkpt lat="${lat}" lon="${lng}"><ele>0</ele></trkpt>`)
+      .join('\n');
+
+    const gpx = `<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="Round Trip Router" xmlns="http://www.topografix.com/GPX/1/1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd">
+  <metadata>
+    <name>Round Trip Route – ${distanceKm} km</name>
+    <time>${now}</time>
+  </metadata>
+  <trk>
+    <name>Round Trip Route – ${distanceKm} km</name>
+    <trkseg>
+${trkpts}
+    </trkseg>
+  </trk>
+</gpx>`;
+
+    const blob = new Blob([gpx], { type: 'application/gpx+xml' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `round-trip-route-${distanceKm}km.gpx`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <main style={{ minHeight: '100vh', padding: '2rem 1rem' }}>
       <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-        
+
         <header className="animate-fade-in" style={{ textAlign: 'center', marginBottom: '3rem' }}>
           <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-secondary)', padding: '1rem', borderRadius: 'var(--radius-full)', marginBottom: '1rem', boxShadow: 'var(--shadow-md)' }}>
             <RouteIcon size={32} className="text-gradient" />
@@ -155,7 +190,7 @@ export default function Home() {
             Circular <span className="text-gradient">Routes</span>
           </h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: '1.125rem', maxWidth: '600px', margin: '0 auto' }}>
-            Discover unique, non-overlapping running loops tailored to your distance and starting location.
+            Right click and drag your cursor on the map to set the preferred general direction of your route.
           </p>
         </header>
 
@@ -166,12 +201,12 @@ export default function Home() {
         )}
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', maxWidth: '800px', margin: '0 auto' }}>
-          
+
           <div className="animate-fade-in" style={{ animationDelay: '100ms' }}>
-            <LocationForm 
-              onSubmit={handleGenerateRoutes} 
+            <LocationForm
+              onSubmit={handleGenerateRoutes}
               onLocate={handleLocate}
-              isGenerating={isGenerating} 
+              isGenerating={isGenerating}
               hasActiveRoute={!!activeRoute}
               distance={distance}
               setDistance={setDistance}
@@ -186,15 +221,49 @@ export default function Home() {
           </div>
 
           <div className="animate-fade-in" style={{ animationDelay: '200ms' }}>
-            <MapDisplay 
-              center={center} 
-              route={activeRoute} 
+            <MapDisplay
+              center={center}
+              route={activeRoute}
               drawMode={true}
               onDirectionDrawn={handleDirectionDrawn}
               onMapClick={handleMapClick}
               directionAngle={directionAngle}
             />
           </div>
+
+          {activeRoute && (
+            <div className="animate-fade-in" style={{ animationDelay: '300ms', display: 'flex', justifyContent: 'center' }}>
+              <button
+                onClick={handleExportGPX}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  padding: '0.6rem 1.5rem',
+                  borderRadius: 'var(--radius-full)',
+                  background: 'transparent',
+                  border: '1px solid rgba(255, 255, 255, 0.15)',
+                  color: 'var(--text-secondary)',
+                  fontSize: '0.875rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  letterSpacing: '0.02em'
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.borderColor = '#ff6600';
+                  e.currentTarget.style.color = '#ff6600';
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.15)';
+                  e.currentTarget.style.color = 'var(--text-secondary)';
+                }}
+              >
+                <Download size={16} />
+                Export GPX
+              </button>
+            </div>
+          )}
 
         </div>
       </div>
