@@ -114,6 +114,9 @@ export default function MapDisplay({ center, route, drawMode, onDirectionDrawn, 
       const map = mapInstance.current;
       const container = map.getContainer();
 
+      let touchTimeout = null;
+      let touchStartLatLng = null;
+
       const finishDrawing = () => {
         if (!isDrawing.current) return;
         isDrawing.current = false;
@@ -173,6 +176,88 @@ export default function MapDisplay({ center, route, drawMode, onDirectionDrawn, 
         finishDrawing();
       };
 
+      const onTouchStart = (e) => {
+        if (e.originalEvent.touches && e.originalEvent.touches.length !== 1) {
+          if (touchTimeout) {
+            clearTimeout(touchTimeout);
+            touchTimeout = null;
+          }
+          return;
+        }
+
+        const latlng = e.latlng;
+        touchStartLatLng = latlng;
+
+        if (touchTimeout) clearTimeout(touchTimeout);
+
+        touchTimeout = setTimeout(() => {
+          if (navigator.vibrate) {
+            navigator.vibrate(50);
+          }
+          isDrawing.current = true;
+          gesturePoints.current = [latlng];
+          map.dragging.disable();
+
+          gesturePolyline.current = L.polyline(
+            [[latlng.lat, latlng.lng]],
+            { color: '#3b82f6', weight: 3, opacity: 0.6, dashArray: '6 4' }
+          ).addTo(map);
+
+          touchTimeout = null;
+        }, 500);
+      };
+
+      const onTouchMove = (e) => {
+        if (!isDrawing.current) {
+          // If dragging has moved finger significantly, cancel long press
+          if (touchTimeout && touchStartLatLng && e.latlng) {
+            const startPt = map.latLngToContainerPoint(touchStartLatLng);
+            const currentPt = map.latLngToContainerPoint(e.latlng);
+            const distance = Math.hypot(currentPt.x - startPt.x, currentPt.y - startPt.y);
+            if (distance > 15) {
+              clearTimeout(touchTimeout);
+              touchTimeout = null;
+            }
+          }
+          return;
+        }
+
+        // We are drawing direction
+        if (e.originalEvent.touches && e.originalEvent.touches.length === 1 && gesturePolyline.current) {
+          e.originalEvent.preventDefault();
+          gesturePoints.current.push(e.latlng);
+          gesturePolyline.current.setLatLngs(
+            gesturePoints.current.map(p => [p.lat, p.lng])
+          );
+        }
+      };
+
+      const onTouchEnd = () => {
+        if (touchTimeout) {
+          clearTimeout(touchTimeout);
+          touchTimeout = null;
+        }
+        if (isDrawing.current) {
+          finishDrawing();
+        }
+      };
+
+      const onTouchCancel = () => {
+        if (touchTimeout) {
+          clearTimeout(touchTimeout);
+          touchTimeout = null;
+        }
+        if (isDrawing.current) {
+          isDrawing.current = false;
+          map.dragging.enable();
+          if (gesturePolyline.current) {
+            map.removeLayer(gesturePolyline.current);
+            gesturePolyline.current = null;
+          }
+          gesturePoints.current = [];
+        }
+      };
+
       // Window-level safety net for mouseup outside the map
       const onWindowMouseUp = () => { if (isDrawing.current) finishDrawing(); };
 
@@ -185,10 +270,19 @@ export default function MapDisplay({ center, route, drawMode, onDirectionDrawn, 
       map.on('mousemove', onMouseMove);
       map.on('mouseup',   onMouseUp);
 
+      map.on('touchstart', onTouchStart);
+      map.on('touchmove',  onTouchMove);
+      map.on('touchend',   onTouchEnd);
+      map.on('touchcancel', onTouchCancel);
+
       return () => {
         map.off('mousedown', onMouseDown);
         map.off('mousemove', onMouseMove);
         map.off('mouseup',   onMouseUp);
+        map.off('touchstart', onTouchStart);
+        map.off('touchmove',  onTouchMove);
+        map.off('touchend',   onTouchEnd);
+        map.off('touchcancel', onTouchCancel);
         container.removeEventListener('contextmenu', preventContextMenu);
         window.removeEventListener('mouseup', onWindowMouseUp);
         map.dragging.enable();
