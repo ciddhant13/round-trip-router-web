@@ -112,11 +112,22 @@ export default function MapDisplay({ center, route, drawMode, onDirectionDrawn, 
     import('leaflet').then((L) => {
       mapInstance.current.setView([center.lat, center.lng], mapInstance.current.getZoom());
 
+      const customPin = L.divIcon({
+        html: `<svg width="24" height="32" viewBox="0 0 24 32" fill="none" style="overflow: visible; filter: drop-shadow(0px 3px 5px rgba(0,0,0,0.4)); display: block;">
+          <path d="M12 30C12 30 22 19 22 12C22 6.5 17.5 2 12 2C6.5 2 2 6.5 2 12C2 19 12 30 12 30Z" fill="#ff6600" stroke="#1a1d24" stroke-width="1.5" />
+          <circle cx="12" cy="12" r="4" fill="#ffffff" />
+        </svg>`,
+        className: 'custom-location-pin',
+        iconSize: [24, 32],
+        iconAnchor: [12, 30]
+      });
+
       if (!markerInstance.current) {
-        markerInstance.current = L.marker([center.lat, center.lng])
+        markerInstance.current = L.marker([center.lat, center.lng], { icon: customPin })
           .addTo(mapInstance.current);
       } else {
         markerInstance.current.setLatLng([center.lat, center.lng]);
+        markerInstance.current.setIcon(customPin);
       }
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
