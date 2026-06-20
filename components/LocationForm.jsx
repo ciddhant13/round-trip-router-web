@@ -121,17 +121,17 @@ export default function LocationForm({
     <div className="glass-panel" style={{ padding: '1.5rem', marginBottom: '1.5rem' }}>
       <h2 style={{ 
         fontSize: '1.5rem', 
-        fontWeight: 600, 
-        marginBottom: '1.5rem', 
+        fontWeight: 700, 
+        marginBottom: '0.25rem', 
         display: 'flex', 
         alignItems: 'center', 
         justifyContent: 'space-between',
         width: '100%'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <RouteIcon className="text-gradient" /> Route Settings
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          <span style={{ color: '#ffffff' }}>Circular</span>
+          <span style={{ color: '#ff6600', marginLeft: '0.4rem' }}>Routes</span>
         </div>
-        
         {/* Sleek cardinal direction pill with smart hover reset */}
         {directionAngle !== null && directionAngle !== undefined && (
           <button
@@ -190,6 +190,9 @@ export default function LocationForm({
           </button>
         )}
       </h2>
+      <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginBottom: '1.5rem', lineHeight: '1.4' }}>
+        Right-click & drag on the map (or use the "Draw Direction" button) to set your route's heading.
+      </p>
       
       {error && (
         <div style={{ color: 'var(--error)', fontSize: '0.875rem', marginBottom: '1rem', padding: '0.75rem', background: 'rgba(239, 68, 68, 0.1)', borderRadius: 'var(--radius-sm)' }}>

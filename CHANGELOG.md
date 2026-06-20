@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.2] - 2026-06-20
+### Added
+- **Route Direction Markers**: Render white chevrons pointing in the travel direction along the route path (spaced at 1 km intervals) with a dark background moat masking the route line underneath.
+
+### Changed
+- **More Compact Title Layout**: Merged the main "Circular Routes" title and explanation directly into the route settings card, and removed the standalone page header.
+- **Route Line Style**: Made the route polyline slightly thinner (weight 3.5) for a cleaner map appearance.
+
+---
+
 ## [1.3.1] - 2026-06-14
 ### Fixed
 - **Native DOM Touch Event Bindings**: Shifted touchstart, touchmove, touchend, and touchcancel listeners from Leaflet's map object directly to the map's native DOM container. This ensures touch events fire reliably even when Leaflet's map dragging is disabled (which normally disables Leaflet's internal touch-to-mouse translation system).

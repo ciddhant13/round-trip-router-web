@@ -10,6 +10,7 @@ export default function MapDisplay({ center, route, drawMode, onDirectionDrawn, 
   const markerInstance = useRef(null);
   const gesturePolyline = useRef(null);   // live drawing line
   const arrowOverlay = useRef(null);      // unused — kept for future use
+  const directionMarkersInstance = useRef([]);
 
   const isDrawing = useRef(false);
   const gesturePoints = useRef([]);
@@ -300,7 +301,7 @@ export default function MapDisplay({ center, route, drawMode, onDirectionDrawn, 
     }
   }, [directionAngle]);
 
-  // ── 5. Draw / update route polyline ──────────────────────────────────────
+  // ── 5. Draw / update route polyline & direction markers ───────────────────
   useEffect(() => {
     if (!mapReady || !mapInstance.current) return;
 
@@ -311,15 +312,44 @@ export default function MapDisplay({ center, route, drawMode, onDirectionDrawn, 
         polylineInstance.current = null;
       }
 
+      // Clear old direction markers
+      if (directionMarkersInstance.current) {
+        directionMarkersInstance.current.forEach((marker) => {
+          mapInstance.current.removeLayer(marker);
+        });
+        directionMarkersInstance.current = [];
+      }
+
       if (!route) return;
 
       const latlngs = route.features[0].geometry.coordinates.map(([lng, lat]) => [lat, lng]);
 
       polylineInstance.current = L.polyline(latlngs, {
         color:   '#ff6600',
-        weight:  5,
+        weight:  3.5,
         opacity: 1.0,
       }).addTo(mapInstance.current);
+
+      // Add direction markers (1 per target km)
+      const totalDistance = route.features[0].properties.summary.distance || 0;
+      const markersCount = Math.floor(totalDistance / 1000);
+      for (let k = 1; k <= markersCount; k++) {
+        const targetDist = k * 1000;
+        const point = getPointAtDistance(latlngs, targetDist);
+        if (point) {
+          const arrowIcon = L.divIcon({
+            html: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" style="transform: rotate(${point.rotation}deg); overflow: visible; display: block;">
+              <polyline points="9 18 15 12 9 6" stroke="#1a1d24" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" />
+              <polyline points="9 18 15 12 9 6" stroke="#ffffff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>`,
+            className: 'route-direction-marker',
+            iconSize: [14, 14],
+            iconAnchor: [7, 7]
+          });
+          const marker = L.marker(point.latlng, { icon: arrowIcon }).addTo(mapInstance.current);
+          directionMarkersInstance.current.push(marker);
+        }
+      }
 
       // Fit the map to the route bounds
       mapInstance.current.fitBounds(polylineInstance.current.getBounds(), { padding: [40, 40] });
@@ -427,4 +457,44 @@ export default function MapDisplay({ center, route, drawMode, onDirectionDrawn, 
       </div>
     </>
   );
+}
+
+// Calculate distance in meters using Haversine formula
+function getDistanceMeters(p1, p2) {
+  const R = 6371000; // Earth radius in meters
+  const lat1 = (p1[0] * Math.PI) / 180;
+  const lat2 = (p2[0] * Math.PI) / 180;
+  const dLat = ((p2[0] - p1[0]) * Math.PI) / 180;
+  const dLng = ((p2[1] - p1[1]) * Math.PI) / 180;
+
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+// Find coordinate and bearing at a cumulative distance along the latlngs path
+function getPointAtDistance(latlngs, targetDist) {
+  let accumulated = 0;
+  for (let i = 0; i < latlngs.length - 1; i++) {
+    const p1 = latlngs[i];
+    const p2 = latlngs[i + 1];
+    const d = getDistanceMeters(p1, p2);
+    if (accumulated + d >= targetDist) {
+      const ratio = (targetDist - accumulated) / d;
+      const lat = p1[0] + (p2[0] - p1[0]) * ratio;
+      const lng = p1[1] + (p2[1] - p1[1]) * ratio;
+
+      const dy = p2[0] - p1[0];
+      const dx = (p2[1] - p1[1]) * Math.cos((p1[0] * Math.PI) / 180);
+      const angleRad = Math.atan2(dy, dx);
+      const angleDeg = (angleRad * 180) / Math.PI;
+      const rotation = -angleDeg;
+
+      return { latlng: [lat, lng], rotation };
+    }
+    accumulated += d;
+  }
+  return null;
 }

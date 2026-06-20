@@ -184,17 +184,7 @@ ${trkpts}
     <main style={{ minHeight: '100vh', padding: '2rem 1rem' }}>
       <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
 
-        <header className="animate-fade-in" style={{ textAlign: 'center', marginBottom: '3rem' }}>
-          <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-secondary)', padding: '1rem', borderRadius: 'var(--radius-full)', marginBottom: '1rem', boxShadow: 'var(--shadow-md)' }}>
-            <RouteIcon size={32} className="text-gradient" />
-          </div>
-          <h1 style={{ fontSize: '3rem', fontWeight: 700, marginBottom: '0.5rem', letterSpacing: '-0.02em' }}>
-            Circular <span className="text-gradient">Routes</span>
-          </h1>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '1.125rem', maxWidth: '600px', margin: '0 auto' }}>
-            Right-click & drag on the map (or use the "Draw Direction" button) to set your route's heading.
-          </p>
-        </header>
+
 
         {globalError && (
           <div className="glass-panel animate-fade-in" style={{ padding: '1rem', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid var(--error)', color: 'var(--error)', marginBottom: '2rem', textAlign: 'center' }}>
@@ -237,7 +227,7 @@ ${trkpts}
         </div>
 
         <footer style={{ marginTop: '3rem', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.75rem', opacity: 0.5 }}>
-          v1.3.1
+          v1.3.2
         </footer>
       </div>
     </main>
