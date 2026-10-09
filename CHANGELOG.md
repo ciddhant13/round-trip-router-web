@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.3] - 2026-10-09
+### Changed
+- **Crisp Dark Vector Map Styling**: Replaced CartoDB tiles with OpenFreeMap vector tiles rendered via MapLibre GL (`maplibre-gl@4.7.1` + `@maplibre/maplibre-gl-leaflet@0.0.22`), matching the custom `enhanced_dark_style.json` from the running-analysis project.
+- **Graceful Tile Fallback**: Retained automatic fallback to Stadia Maps Alidade Smooth Dark if WebGL is unavailable.
+- **Stylesheet Packaging**: Directly imported `leaflet/dist/leaflet.css` and `maplibre-gl/dist/maplibre-gl.css` in `app/layout.js` for clean bundling.
+
+---
+
 ## [1.3.2] - 2026-06-20
 ### Added
 - **Route Direction Markers**: Render white chevrons pointing in the travel direction along the route path (spaced at 1 km intervals) with a dark background moat masking the route line underneath.

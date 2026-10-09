@@ -43,7 +43,10 @@ export default function MapDisplay({ center, route, drawMode, onDirectionDrawn, 
     if (mapInstance.current || !mapRef.current) return;
 
     // Leaflet touches `window` on import — must be dynamic
-    import('leaflet').then((L) => {
+    import('leaflet').then(async (leafletModule) => {
+      const L = leafletModule.default || leafletModule;
+      window.L = L;
+
       // Fix default icon asset paths broken by webpack bundling
       delete L.Icon.Default.prototype._getIconUrl;
       L.Icon.Default.mergeOptions({
@@ -64,23 +67,39 @@ export default function MapDisplay({ center, route, drawMode, onDirectionDrawn, 
         doubleClickZoom: false,
       });
 
-      // CartoDB Dark Matter — free, no API key, dark base tiles.
-      // A CSS filter is applied to the tile pane afterwards to lift road/label
-      // contrast so the map doesn't look flat.
-      const tileLayer = L.tileLayer(
-        'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-        {
-          attribution:
-            '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions" target="_blank">CARTO</a>',
-          subdomains: 'abcd',
-          maxZoom: 20,
-        }
-      ).addTo(map);
+      // Use enhanced dark vector style from running-analysis via MapLibre GL
+      try {
+        await import('@maplibre/maplibre-gl-leaflet');
+        const enhancedDarkStyleModule = await import('@/data/enhanced_dark_style.json');
+        const enhancedDarkStyle = enhancedDarkStyleModule.default || enhancedDarkStyleModule;
 
-      // Boost road/label visibility without blowing out the dark background
-      tileLayer.on('load', () => {
-        map.getPanes().tilePane.style.filter = 'brightness(2.0) contrast(1.1) saturate(1.3)';
-      });
+        if (typeof L.maplibreGL === 'function') {
+          L.maplibreGL({
+            style: enhancedDarkStyle,
+            attribution: '&copy; <a href="https://openfreemap.org" target="_blank">OpenFreeMap</a> &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>'
+          }).addTo(map);
+        } else {
+          throw new Error('L.maplibreGL is not a function');
+        }
+      } catch (err) {
+        console.warn('MapLibre GL initialization error, falling back to Stadia:', err);
+        L.tileLayer(
+          'https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png',
+          {
+            attribution:
+              '&copy; <a href="https://stadiamaps.com/" target="_blank">Stadia Maps</a> &copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors',
+            maxZoom: 20,
+          }
+        ).addTo(map);
+      }
+
+      // Ensure tilePane has no color-distorting filters applied
+      const tilePane = mapRef.current?.querySelector('.leaflet-tile-pane');
+      if (tilePane) tilePane.style.filter = 'none';
+
+      setTimeout(() => {
+        map.invalidateSize();
+      }, 200);
 
       // Map click → pick start location
       map.on('click', (e) => {
@@ -371,14 +390,26 @@ export default function MapDisplay({ center, route, drawMode, onDirectionDrawn, 
     <>
       {/* Leaflet CSS — loaded once globally via a link tag */}
       <style>{`
-        @import url('https://unpkg.com/leaflet@1.9.4/dist/leaflet.css');
         .leaflet-container { 
-          background: #1a1d20; 
+          background: #13151F; 
           user-select: none !important;
           -webkit-user-select: none !important;
           -moz-user-select: none !important;
           -ms-user-select: none !important;
           -webkit-touch-callout: none !important;
+        }
+        .leaflet-gl-layer {
+          position: absolute;
+          width: 100%;
+          height: 100%;
+          left: 0;
+          top: 0;
+          pointer-events: none;
+        }
+        .leaflet-gl-layer canvas {
+          position: absolute;
+          left: 0;
+          top: 0;
         }
         .leaflet-container * {
           user-select: none !important;

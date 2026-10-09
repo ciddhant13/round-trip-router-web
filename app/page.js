@@ -227,7 +227,7 @@ ${trkpts}
         </div>
 
         <footer style={{ marginTop: '3rem', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.75rem', opacity: 0.5 }}>
-          v1.3.2
+          v1.3.3
         </footer>
       </div>
     </main>
